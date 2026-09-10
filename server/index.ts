@@ -15,7 +15,6 @@ const configuredOrigins = [...new Set([
   'https://tsitsm-v2.vercel.app',
   ...(process.env.CLIENT_ORIGIN || '').split(','),
 ])]
-  .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
 app.use(cors({

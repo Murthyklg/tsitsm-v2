@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import sql from 'mssql';
-import sqlWindows from 'mssql/msnodesqlv8';
 
 const baseConfig = {
   server: (process.env.SQL_SERVER || 'localhost\\SQLEXPRESS').trim(),
@@ -18,8 +17,15 @@ const config = process.env.SQL_AUTH === 'windows'
   : { ...baseConfig, user: process.env.SQL_USER, password: process.env.SQL_PASSWORD };
 
 let poolPromise: Promise<sql.ConnectionPool> | undefined;
-export const getPool = () => {
-  poolPromise ??= (process.env.SQL_AUTH === 'windows' ? sqlWindows : sql).connect(config);
+export const getPool = async () => {
+  if (!poolPromise) {
+    if (process.env.SQL_AUTH === 'windows') {
+      const { default: sqlWindows } = await import('mssql/msnodesqlv8');
+      poolPromise = sqlWindows.connect(config);
+    } else {
+      poolPromise = sql.connect(config);
+    }
+  }
   return poolPromise;
 };
 

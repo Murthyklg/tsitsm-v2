@@ -67,6 +67,8 @@ VITE_API_SCOPE=api://<api-client-id>/access_as_user
 
 On the API host, set `CLIENT_ORIGIN` to the Vercel URL, for example `https://your-app.vercel.app`. If using Vercel preview URLs, include each allowed preview origin as a comma-separated value. The API deployment must use the repository root and [vercel.json](vercel.json), which routes requests to the Express server. Redeploy the frontend after changing `VITE_API_URL`; Vite variables are embedded at build time.
 
+For a Vercel API deployment, use `SQL_AUTH=sql` and a public/cloud SQL Server hostname. `SQL_AUTH=windows` and `localhost\SQLEXPRESS` only work for the local Windows API and cannot be used by Vercel's Linux runtime.
+
 Vite listens on all network interfaces over local HTTPS, so other devices can open the app at `https://<host-ip>:5173`. Accept the development certificate warning in the browser, and add that exact HTTPS URL as a SPA redirect URI in the Microsoft Entra app registration before testing sign-in from the IP address.
 
 ## Validation

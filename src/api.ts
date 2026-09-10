@@ -72,16 +72,12 @@ export const apiRequest = async <T>(path: string, options: RequestInit = {}): Pr
     response = await request(token);
   } catch (error) {
     if (apiBaseUrl === '/api' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-      throw new Error('API is not configured for this deployment. Set VITE_API_URL to the public API URL, then redeploy the frontend.');
+      throw new Error('API is not configured for this deployment. Set VITE_API_URL to the public API URL, then redeploy the frontend.', { cause: error });
     }
     throw error;
   }
   if (response.status === 401) {
-    try {
-      response = await request(await getAccessToken(true));
-    } catch (error) {
-      throw error;
-    }
+    response = await request(await getAccessToken(true));
   }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
