@@ -24,7 +24,8 @@ The `AADSTS500011` error means the API registration or scope is missing. In Micr
 2. Open **Expose an API** and set the Application ID URI to `api://<API_CLIENT_ID>`.
 3. Add a delegated scope named `access_as_user` and enable administrator consent.
 4. Open the SPA registration's **API permissions**, choose **My APIs**, select the API registration, add `access_as_user`, and grant admin consent.
-5. Set `VITE_API_SCOPE=api://<API_CLIENT_ID>/access_as_user` and `ENTRA_CLIENT_ID=<API_CLIENT_ID>` in `.env`.
+5. In the SPA registration's **API permissions**, add Microsoft Graph delegated permission `User.Read` and grant consent.
+6. Set `VITE_API_SCOPE=api://<API_CLIENT_ID>/access_as_user` and `ENTRA_CLIENT_ID=<API_CLIENT_ID>` in `.env`.
 
 If you expose the API on the existing SPA registration instead, use its client ID in both values and create the same `access_as_user` scope. The API resource must exist before the frontend can request its token.
 

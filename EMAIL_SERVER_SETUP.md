@@ -22,6 +22,13 @@ firebase functions:config:set \
 
 If your Microsoft account uses MFA, create an app password in your Microsoft account settings.
 
+If Microsoft 365 returns `535 5.7.139` or says the user is locked by the organization's Security Defaults policy, password-based SMTP AUTH is blocked. An app password will not fix that by itself. A Microsoft 365 administrator must either:
+
+1. Enable **Authenticated SMTP** for this mailbox under **Microsoft 365 admin center -> Users -> Active users -> Mail -> Manage email apps**, and ensure the tenant policy permits SMTP AUTH; or
+2. Use the Microsoft Graph `Mail.Send` API with OAuth2 instead of SMTP.
+
+Security Defaults generally should remain enabled. The Graph option is the preferred production approach because it avoids re-enabling legacy SMTP authentication. Rotate any password or app password that has been exposed, then restart the API after changing `.env`.
+
 ### Option B: Generic SMTP server on Ubuntu
 
 If you are running a local SMTP relay on Ubuntu, set the values to match your server:
@@ -60,6 +67,8 @@ export SMTP_PASS="YOUR_APP_PASSWORD"
 export SMTP_FROM="itadmin@thaisummit.ind.in"
 export INCIDENT_NOTIFICATION_EMAIL="itadmin@thaisummit.ind.in"
 ```
+
+For the SQL-backed Express API, provide the same SMTP variables to the API process (or Docker Compose). Incident creation emails `INCIDENT_NOTIFICATION_EMAIL`; admin status, notes, and comments email the incident reporter. Email delivery errors are logged after the database operation succeeds.
 
 For persistent setup, add them to `/etc/environment` or a systemd service file.
 

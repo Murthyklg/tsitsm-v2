@@ -21,12 +21,12 @@ export const initializeAuth = async () => {
 
 export const getAccount = (): AccountInfo | null => msal?.getActiveAccount() || msal?.getAllAccounts()[0] || null;
 
-export const getAccessToken = async () => {
+export const getAccessToken = async (forceRefresh = false) => {
   await initializeAuth();
   const account = getAccount();
   if (!account || !msal) throw new Error('Microsoft sign-in is required');
   try {
-    const result = await msal.acquireTokenSilent({ account, scopes: [apiScope] });
+    const result = await msal.acquireTokenSilent({ account, scopes: [apiScope], forceRefresh });
     return result.accessToken;
   } catch {
     await msal.acquireTokenRedirect({ account, scopes: [apiScope] });
@@ -34,12 +34,43 @@ export const getAccessToken = async () => {
   }
 };
 
+export const getMicrosoftProfile = async () => {
+  await initializeAuth();
+  const account = getAccount();
+  if (!account || !msal) throw new Error('Microsoft sign-in is required');
+
+  let result;
+  try {
+    result = await msal.acquireTokenSilent({ account, scopes: ['User.Read'] });
+  } catch {
+    await msal.acquireTokenRedirect({ account, scopes: ['User.Read'] });
+    throw new Error('Redirecting to Microsoft profile consent');
+  }
+
+  const response = await fetch('https://graph.microsoft.com/v1.0/me?$select=displayName,department,onPremisesDepartment,mobilePhone,mail,userPrincipalName', {
+    headers: { Authorization: `Bearer ${result.accessToken}` },
+  });
+  if (!response.ok) throw new Error(`Microsoft profile request failed (${response.status})`);
+  return response.json() as Promise<{
+    displayName?: string;
+    department?: string;
+    onPremisesDepartment?: string;
+    mobilePhone?: string;
+    mail?: string;
+    userPrincipalName?: string;
+  }>;
+};
+
 export const apiRequest = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
   const token = await getAccessToken();
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const request = (accessToken: string) => fetch(`${apiBaseUrl}${path}`, {
     ...options,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...options.headers },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}`, ...options.headers },
   });
+  let response = await request(token);
+  if (response.status === 401) {
+    response = await request(await getAccessToken(true));
+  }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     throw new Error(body.error || `API request failed (${response.status})`);

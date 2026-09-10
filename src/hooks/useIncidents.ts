@@ -167,23 +167,6 @@ export const useIncidents = (userId?: string, isAdmin?: boolean) => {
         targetId: `${incidentData.title}`,
       });
 
-      try {
-        const notificationServiceUrl = import.meta.env.VITE_NOTIFICATION_SERVICE_URL || 'http://localhost:3001/api/incidents/notify';
-        await fetch(notificationServiceUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            senderEmail: incidentData.reporterEmail,
-            incident: {
-              ...incidentData,
-              title: incidentData.title,
-            },
-          }),
-        });
-      } catch (notificationError) {
-        console.error('Incident notification service failed:', notificationError);
-      }
-
       refetch();
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to create incident');

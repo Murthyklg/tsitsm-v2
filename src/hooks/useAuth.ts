@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AccountInfo } from '@azure/msal-browser';
-import { apiRequest, getAccount, initializeAuth, msal } from '../api';
+import { apiRequest, getAccount, getMicrosoftProfile, initializeAuth, msal } from '../api';
 import type { UserProfile } from '../types/asset';
 import { logActivityEvent } from '../utils/activityLogs';
 
@@ -38,6 +38,21 @@ export const useAuth = () => {
         const me = await apiRequest<{ isAdmin?: boolean; name?: string }>('/me');
         setIsAdmin(Boolean(me.isAdmin));
         if (me.name) setUser((current) => current ? { ...current, displayName: me.name! } : current);
+        const entraProfile = await getMicrosoftProfile();
+        const displayName = entraProfile.displayName?.trim();
+        const department = (entraProfile.department || entraProfile.onPremisesDepartment)?.trim();
+        const mobile = entraProfile.mobilePhone?.trim();
+        await apiRequest('/profile/sync', {
+          method: 'PUT',
+          body: JSON.stringify({ displayName, department, mobile }),
+        });
+        if (displayName || mobile) {
+          setUser((current) => current ? {
+            ...current,
+            displayName: displayName || current.displayName,
+            phoneNumber: mobile || current.phoneNumber,
+          } : current);
+        }
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : 'Unable to load account');
       }

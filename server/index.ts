@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
+import nodemailer from 'nodemailer';
 import { getPool, sql } from './db.js';
 import { requireAdmin, requireAuth } from './auth.js';
 
@@ -16,6 +17,48 @@ const json = (value: unknown) => JSON.stringify(value ?? []);
 const parseJson = (value: unknown) => { try { return value ? JSON.parse(String(value)) : []; } catch { return []; } };
 const assetFields = ['EmployeeId','EmployeeName','UserEmail','MobileNumber','Department','Location','OwnerId','Category','SerialNumber','Manufacturer','Ownership','VendorName','Model','PurchaseDate','PurchasePrice','WarrantyExpiration','Condition','Status','CpuManufacturer','CpuModel','CpuGeneration','RamType','RamSizeGb','StorageType','StorageCapacityGb','Os','OperatingSystemVersion','MacAddress','PurchaseOrderNumber','Notes','ImageUrl','TagsJson'];
 const mapAsset = (row: Record<string, unknown>) => ({ ...row, id: row.Id, owner: row.OwnerId, tags: parseJson(row.TagsJson), createdAt: row.CreatedAt, updatedAt: row.UpdatedAt });
+const escapeHtml = (value: unknown) => String(value ?? 'N/A').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] || character);
+const createEmailTransporter = () => {
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  const outlookEmail = process.env.OUTLOOK_EMAIL;
+  const outlookPassword = process.env.OUTLOOK_PASSWORD;
+
+  if (smtpHost && smtpUser && smtpPass) {
+    return nodemailer.createTransport({
+      host: smtpHost,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: { user: smtpUser, pass: smtpPass },
+    });
+  }
+
+  if (outlookEmail && outlookPassword) {
+    return nodemailer.createTransport({ service: 'outlook', auth: { user: outlookEmail, pass: outlookPassword } });
+  }
+
+  return null;
+};
+const sendIncidentEmail = async (to: string | undefined, subject: string, incident: Record<string, unknown>) => {
+  if (!to || !to.includes('@')) return;
+  const transporter = createEmailTransporter();
+  if (!transporter) {
+    console.warn('Incident email skipped: SMTP_HOST/SMTP_USER/SMTP_PASS or OUTLOOK_EMAIL/OUTLOOK_PASSWORD is not configured');
+    return;
+  }
+  const from = process.env.SMTP_FROM || process.env.OUTLOOK_EMAIL || process.env.SMTP_USER || 'no-reply@localhost';
+  const fields = Object.entries(incident).map(([label, value]) => `<p><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</p>`).join('');
+  await transporter.sendMail({
+    from,
+    to,
+    subject,
+    html: `<html><body><h2>ITSM Incident Notification</h2>${fields}<p>This is an automated notification.</p></body></html>`,
+  });
+};
+const notifyIncident = (to: string | undefined, subject: string, incident: Record<string, unknown>) => {
+  void sendIncidentEmail(to, subject, incident).catch((error) => console.error('Incident email notification failed:', error));
+};
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api', requireAuth);
@@ -24,7 +67,16 @@ app.get('/api/me', (req, res) => res.json(req.user));
 app.get('/api/profile', async (req, res) => {
   const pool = await getPool();
   const result = await pool.request().input('id', sql.NVarChar(128), req.user!.id).query('SELECT * FROM dbo.Users WHERE Id = @id');
-  res.json(result.recordset[0] || null);
+  const profile = result.recordset[0];
+  res.json(profile ? {
+    uid: profile.Id,
+    email: profile.Email,
+    displayName: profile.DisplayName,
+    employeeName: profile.EmployeeName,
+    employeeId: profile.EmployeeId,
+    mobile: profile.Mobile,
+    department: profile.Department,
+  } : null);
 });
 app.put('/api/profile', async (req, res) => {
   const pool = await getPool(); const body = req.body;
@@ -32,6 +84,21 @@ app.put('/api/profile', async (req, res) => {
     .input('displayName', sql.NVarChar(200), body.displayName || body.employeeName || req.user!.name).input('employeeName', sql.NVarChar(200), body.employeeName || body.displayName || req.user!.name)
     .input('employeeId', sql.NVarChar(100), body.employeeId || '').input('mobile', sql.NVarChar(50), body.mobile || '').input('department', sql.NVarChar(150), body.department || '')
     .query(`UPDATE dbo.Users SET DisplayName=@displayName, EmployeeName=@employeeName, EmployeeId=@employeeId, Mobile=@mobile, Department=@department, UpdatedAt=SYSUTCDATETIME() WHERE Id=@id`);
+  res.json({ ok: true });
+});
+app.put('/api/profile/sync', async (req, res) => {
+  const pool = await getPool(); const body = req.body;
+  await pool.request().input('id', sql.NVarChar(128), req.user!.id)
+    .input('displayName', sql.NVarChar(200), body.displayName || null)
+    .input('mobile', sql.NVarChar(50), body.mobile || null)
+    .input('department', sql.NVarChar(150), body.department || null)
+    .query(`UPDATE dbo.Users SET
+      DisplayName=COALESCE(NULLIF(@displayName, ''), DisplayName),
+      EmployeeName=COALESCE(NULLIF(@displayName, ''), EmployeeName),
+      Mobile=COALESCE(NULLIF(@mobile, ''), Mobile),
+      Department=COALESCE(NULLIF(@department, ''), Department),
+      UpdatedAt=SYSUTCDATETIME()
+      WHERE Id=@id`);
   res.json({ ok: true });
 });
 
@@ -65,9 +132,9 @@ app.patch('/api/asset-requests/:id', requireAdmin, async (req,res)=>{const p=awa
 app.post('/api/asset-requests/:id/comments', async (req,res)=>{const b=req.body;const p=await getPool();const r=await p.request().input('requestId',sql.UniqueIdentifier,req.params.id).input('authorId',sql.NVarChar(128),req.user!.id).input('authorName',sql.NVarChar(200),b.authorName).input('authorEmail',sql.NVarChar(320),req.user!.email).input('authorRole',sql.NVarChar(30),req.user!.isAdmin?'admin':'user').input('text',sql.NVarChar(sql.MAX),b.text).query('INSERT dbo.AssetRequestComments (RequestId,AuthorId,AuthorName,AuthorEmail,AuthorRole,Text) OUTPUT INSERTED.* VALUES (@requestId,@authorId,@authorName,@authorEmail,@authorRole,@text)');res.status(201).json(r.recordset[0]);});
 
 app.get('/api/incidents', async (req,res)=>{const p=await getPool();const r=req.user!.isAdmin?await p.request().query('SELECT * FROM dbo.Incidents ORDER BY CreatedAt DESC'):await p.request().input('id',sql.NVarChar(128),req.user!.id).query('SELECT * FROM dbo.Incidents WHERE ReporterId=@id ORDER BY CreatedAt DESC');const out=[];for(const row of r.recordset){const c=await p.request().input('id',sql.UniqueIdentifier,row.Id).query('SELECT * FROM dbo.IncidentComments WHERE IncidentId=@id ORDER BY CreatedAt');out.push({...row,id:row.Id,comments:comments(c.recordset)});}res.json(out);});
-app.post('/api/incidents', async(req,res)=>{const b=req.body;const p=await getPool();const tx=new sql.Transaction(p);await tx.begin();try{const n=await new sql.Request(tx).query(`SELECT ISNULL(MAX(IncidentNumber),0)+1 AS NextNumber FROM dbo.Incidents`);const number=n.recordset[0].NextNumber;const r=await new sql.Request(tx).input('number',sql.Int,number).input('reporterId',sql.NVarChar(128),req.user!.id).input('reporterEmail',sql.NVarChar(320),req.user!.email).input('reporterName',sql.NVarChar(200),b.reporterName).input('reporterEmployeeId',sql.NVarChar(100),b.reporterEmployeeId).input('reporterMobile',sql.NVarChar(50),b.reporterMobile).input('reporterDepartment',sql.NVarChar(150),b.reporterDepartment).input('title',sql.NVarChar(300),b.title).input('assetId',sql.NVarChar(100),b.assetId).input('assetName',sql.NVarChar(200),b.assetName).input('description',sql.NVarChar(sql.MAX),b.description).input('severity',sql.NVarChar(30),b.severity).input('category',sql.NVarChar(50),b.category).query(`INSERT dbo.Incidents (IncidentNumber,ReporterId,ReporterEmail,ReporterName,ReporterEmployeeId,ReporterMobile,ReporterDepartment,Title,AssetId,AssetName,Description,Severity,Category) OUTPUT INSERTED.* VALUES (@number,@reporterId,@reporterEmail,@reporterName,@reporterEmployeeId,@reporterMobile,@reporterDepartment,@title,@assetId,@assetName,@description,@severity,@category)`);await tx.commit();res.status(201).json({...r.recordset[0],id:r.recordset[0].Id,comments:[]});}catch(e){await tx.rollback();throw e;}});
-app.patch('/api/incidents/:id',requireAdmin,async(req,res)=>{const p=await getPool();const r=await p.request().input('id',sql.UniqueIdentifier,req.params.id).input('status',sql.NVarChar(40),req.body.status).input('notes',sql.NVarChar(sql.MAX),req.body.adminNotes||null).query('UPDATE dbo.Incidents SET Status=@status,AdminNotes=@notes,UpdatedAt=SYSUTCDATETIME() OUTPUT INSERTED.* WHERE Id=@id');res.json({...r.recordset[0],id:r.recordset[0].Id});});
-app.post('/api/incidents/:id/comments',async(req,res)=>{const b=req.body;const p=await getPool();const r=await p.request().input('incidentId',sql.UniqueIdentifier,req.params.id).input('authorId',sql.NVarChar(128),req.user!.id).input('authorName',sql.NVarChar(200),b.authorName).input('authorEmail',sql.NVarChar(320),req.user!.email).input('authorRole',sql.NVarChar(30),req.user!.isAdmin?'admin':'user').input('text',sql.NVarChar(sql.MAX),b.text).query('INSERT dbo.IncidentComments (IncidentId,AuthorId,AuthorName,AuthorEmail,AuthorRole,Text) OUTPUT INSERTED.* VALUES (@incidentId,@authorId,@authorName,@authorEmail,@authorRole,@text)');res.status(201).json(r.recordset[0]);});
+app.post('/api/incidents', async(req,res)=>{const b=req.body;const p=await getPool();const tx=p.transaction();await tx.begin();try{const n=await tx.request().query(`SELECT ISNULL(MAX(IncidentNumber),0)+1 AS NextNumber FROM dbo.Incidents`);const number=n.recordset[0].NextNumber;const r=await tx.request().input('number',sql.Int,number).input('reporterId',sql.NVarChar(128),req.user!.id).input('reporterEmail',sql.NVarChar(320),req.user!.email).input('reporterName',sql.NVarChar(200),b.reporterName).input('reporterEmployeeId',sql.NVarChar(100),b.reporterEmployeeId).input('reporterMobile',sql.NVarChar(50),b.reporterMobile).input('reporterDepartment',sql.NVarChar(150),b.reporterDepartment).input('title',sql.NVarChar(300),b.title).input('assetId',sql.NVarChar(100),b.assetId).input('assetName',sql.NVarChar(200),b.assetName).input('description',sql.NVarChar(sql.MAX),b.description).input('severity',sql.NVarChar(30),b.severity).input('category',sql.NVarChar(50),b.category).query(`INSERT dbo.Incidents (IncidentNumber,ReporterId,ReporterEmail,ReporterName,ReporterEmployeeId,ReporterMobile,ReporterDepartment,Title,AssetId,AssetName,Description,Severity,Category) OUTPUT INSERTED.* VALUES (@number,@reporterId,@reporterEmail,@reporterName,@reporterEmployeeId,@reporterMobile,@reporterDepartment,@title,@assetId,@assetName,@description,@severity,@category)`);await tx.commit();const incident={...r.recordset[0],id:r.recordset[0].Id};notifyIncident(process.env.INCIDENT_NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL || 'itadmin@thaisummit.ind.in', `[INCIDENT] ${b.title || 'New incident report submitted'}`, incident);res.status(201).json({...incident,comments:[]});}catch(e){await tx.rollback();throw e;}});
+app.patch('/api/incidents/:id',requireAdmin,async(req,res)=>{const p=await getPool();const r=await p.request().input('id',sql.UniqueIdentifier,req.params.id).input('status',sql.NVarChar(40),req.body.status).input('notes',sql.NVarChar(sql.MAX),req.body.adminNotes||null).query('UPDATE dbo.Incidents SET Status=@status,AdminNotes=@notes,UpdatedAt=SYSUTCDATETIME() OUTPUT INSERTED.* WHERE Id=@id');const incident={...r.recordset[0],id:r.recordset[0].Id};notifyIncident(incident.ReporterEmail, `[INCIDENT #${incident.IncidentNumber}] Ticket updated`, incident);res.json(incident);});
+app.post('/api/incidents/:id/comments',async(req,res)=>{const b=req.body;const p=await getPool();const r=await p.request().input('incidentId',sql.UniqueIdentifier,req.params.id).input('authorId',sql.NVarChar(128),req.user!.id).input('authorName',sql.NVarChar(200),b.authorName).input('authorEmail',sql.NVarChar(320),req.user!.email).input('authorRole',sql.NVarChar(30),req.user!.isAdmin?'admin':'user').input('text',sql.NVarChar(sql.MAX),b.text).query('INSERT dbo.IncidentComments (IncidentId,AuthorId,AuthorName,AuthorEmail,AuthorRole,Text) OUTPUT INSERTED.* VALUES (@incidentId,@authorId,@authorName,@authorEmail,@authorRole,@text)');if(req.user!.isAdmin){const incident=(await p.request().input('id',sql.UniqueIdentifier,req.params.id).query('SELECT * FROM dbo.Incidents WHERE Id=@id')).recordset[0];notifyIncident(incident?.ReporterEmail, `[INCIDENT #${incident?.IncidentNumber}] New admin comment`, {...incident, AdminComment:b.text});}res.status(201).json(r.recordset[0]);});
 app.get('/api/activity-logs', requireAdmin, async(_req,res)=>{const p=await getPool();const r=await p.request().query('SELECT TOP 500 * FROM dbo.ActivityLogs WHERE CreatedAt >= DATEADD(day,-30,SYSUTCDATETIME()) ORDER BY CreatedAt DESC');res.json(r.recordset.map((x)=>({...x,id:x.Id})));});
 app.post('/api/activity-logs', async(req,res)=>{const b=req.body;const p=await getPool();await p.request().input('module',sql.NVarChar(40),b.module).input('action',sql.NVarChar(80),b.action).input('description',sql.NVarChar(sql.MAX),b.description).input('performedBy',sql.NVarChar(200),req.user!.name).input('performedByEmail',sql.NVarChar(320),req.user!.email).input('targetName',sql.NVarChar(300),b.targetName).input('targetId',sql.NVarChar(100),b.targetId).query('INSERT dbo.ActivityLogs (Module,Action,Description,PerformedBy,PerformedByEmail,TargetName,TargetId) VALUES (@module,@action,@description,@performedBy,@performedByEmail,@targetName,@targetId)');res.status(201).json({ok:true});});
 

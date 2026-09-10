@@ -365,7 +365,7 @@ export const IncidentManagement: React.FC = () => {
                   incidentStats.total === 0
                     ? 'conic-gradient(#e5e7eb 0 100%)'
                     : `conic-gradient(
-                        #ff3d3d 0 ${Math.round((incidentStats.open / incidentStats.total) * 100)}%,
+                        #dc2626 0 ${Math.round((incidentStats.open / incidentStats.total) * 100)}%,
                         #fd5000 ${Math.round((incidentStats.open / incidentStats.total) * 100)}% ${Math.round(((incidentStats.open + incidentStats.inProgress) / incidentStats.total) * 100)}%,
                         #01530f ${Math.round(((incidentStats.open + incidentStats.inProgress) / incidentStats.total) * 100)}% 100%
                       )`,
