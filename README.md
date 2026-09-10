@@ -54,6 +54,19 @@ npm run dev
 
 The Vite dev server proxies `/api` to `http://localhost:3001`. To run the API elsewhere, set `VITE_API_URL`.
 
+### Vercel frontend deployment
+
+Vercel builds the frontend separately from the Express API. Add these Vercel environment variables before deploying:
+
+```env
+VITE_API_URL=https://<your-public-api-host>/api
+VITE_MICROSOFT_CLIENT_ID=<spa-client-id>
+VITE_MICROSOFT_TENANT_ID=<tenant-id>
+VITE_API_SCOPE=api://<api-client-id>/access_as_user
+```
+
+On the API host, set `CLIENT_ORIGIN` to the Vercel URL, for example `https://your-app.vercel.app`. If using Vercel preview URLs, include each allowed preview origin as a comma-separated value. The API deployment must use the repository root and [vercel.json](vercel.json), which routes requests to the Express server. Redeploy the frontend after changing `VITE_API_URL`; Vite variables are embedded at build time.
+
 Vite listens on all network interfaces over local HTTPS, so other devices can open the app at `https://<host-ip>:5173`. Accept the development certificate warning in the browser, and add that exact HTTPS URL as a SPA redirect URI in the Microsoft Entra app registration before testing sign-in from the IP address.
 
 ## Validation

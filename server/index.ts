@@ -10,7 +10,11 @@ import { requireAdmin, requireAuth } from './auth.js';
 const app = express();
 const port = Number(process.env.API_PORT || 3001);
 const appRoot = path.dirname(fileURLToPath(import.meta.url));
-const configuredOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+const configuredOrigins = [...new Set([
+  'http://localhost:5173',
+  'https://tsitsm-v2.vercel.app',
+  ...(process.env.CLIENT_ORIGIN || '').split(','),
+])]
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
@@ -162,4 +166,8 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => { console.error(error); res.status(500).json({ error: error instanceof Error ? error.message : 'Server error' }); });
-app.listen(port, () => console.log(`ITSM API listening on http://localhost:${port}`));
+if (process.env.VERCEL !== '1') {
+  app.listen(port, () => console.log(`ITSM API listening on http://localhost:${port}`));
+}
+
+export default app;

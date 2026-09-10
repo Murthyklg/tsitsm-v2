@@ -67,9 +67,21 @@ export const apiRequest = async <T>(path: string, options: RequestInit = {}): Pr
     ...options,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}`, ...options.headers },
   });
-  let response = await request(token);
+  let response: Response;
+  try {
+    response = await request(token);
+  } catch (error) {
+    if (apiBaseUrl === '/api' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+      throw new Error('API is not configured for this deployment. Set VITE_API_URL to the public API URL, then redeploy the frontend.');
+    }
+    throw error;
+  }
   if (response.status === 401) {
-    response = await request(await getAccessToken(true));
+    try {
+      response = await request(await getAccessToken(true));
+    } catch (error) {
+      throw error;
+    }
   }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
