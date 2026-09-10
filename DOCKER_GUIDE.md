@@ -31,6 +31,8 @@ SQL_ENCRYPT=false
 SQL_TRUST_SERVER_CERTIFICATE=true
 ```
 
+For a separate frontend deployment, set `VITE_API_URL` to the public API URL before building (for example, `https://api.example.com/api`). For the combined Docker image, leave it as `/api`.
+
 Ensure SQL Express TCP/IP is enabled, port `1433` is configured or exposed, and the login can access `tsitsm`. Apply the schema before starting the container:
 
 ```powershell

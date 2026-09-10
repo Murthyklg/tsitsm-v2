@@ -8,6 +8,7 @@ services:
         VITE_MICROSOFT_CLIENT_ID: ${VITE_MICROSOFT_CLIENT_ID}
         VITE_MICROSOFT_TENANT_ID: ${VITE_MICROSOFT_TENANT_ID}
         VITE_API_SCOPE: ${VITE_API_SCOPE}
+        VITE_API_URL: ${VITE_API_URL:-/api}
     ports:
       - "3001:3001"
     environment:

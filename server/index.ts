@@ -10,7 +10,21 @@ import { requireAdmin, requireAuth } from './auth.js';
 const app = express();
 const port = Number(process.env.API_PORT || 3001);
 const appRoot = path.dirname(fileURLToPath(import.meta.url));
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
+const configuredOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+app.use(cors({
+  origin: (origin, callback) => {
+    const isLocalDevOrigin = /^http:\/\/localhost:\d+$/.test(origin || '')
+      || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin || '');
+    if (!origin || configuredOrigins.includes(origin) || isLocalDevOrigin) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Origin is not allowed by CORS'));
+  },
+}));
 app.use(express.json({ limit: '2mb' }));
 
 const json = (value: unknown) => JSON.stringify(value ?? []);
