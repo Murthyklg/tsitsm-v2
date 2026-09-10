@@ -1,0 +1,35 @@
+services:
+  app:
+    container_name: tsitsm-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_MICROSOFT_CLIENT_ID: ${VITE_MICROSOFT_CLIENT_ID}
+        VITE_MICROSOFT_TENANT_ID: ${VITE_MICROSOFT_TENANT_ID}
+        VITE_API_SCOPE: ${VITE_API_SCOPE}
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      API_PORT: 3001
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:3001}
+      ENTRA_TENANT_ID: ${ENTRA_TENANT_ID}
+      ENTRA_CLIENT_ID: ${ENTRA_CLIENT_ID}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-itadmin@thaisummit.ind.in}
+      SQL_SERVER: ${SQL_SERVER}
+      SQL_PORT: ${SQL_PORT}
+      SQL_AUTH: ${SQL_AUTH:-sql}
+      SQL_DRIVER: ${SQL_DRIVER:-ODBC Driver 17 for SQL Server}
+      SQL_DATABASE: ${SQL_DATABASE:-tsitsm}
+      SQL_USER: ${SQL_USER}
+      SQL_PASSWORD: ${SQL_PASSWORD}
+      SQL_ENCRYPT: ${SQL_ENCRYPT:-true}
+      SQL_TRUST_SERVER_CERTIFICATE: ${SQL_TRUST_SERVER_CERTIFICATE:-false}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health', r => { if (r.statusCode !== 200) process.exit(1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

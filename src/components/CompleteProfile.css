@@ -1,0 +1,95 @@
+.complete-profile-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #ff5100 0%, #014119 100%);
+}
+
+.complete-profile-card {
+  width: min(100%, 480px);
+  background: white;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.complete-profile-card h2 {
+  margin: 0 0 8px;
+  color: #014119;
+  text-align: center;
+}
+
+.complete-profile-card p {
+  margin: 0 0 20px;
+  color: #666;
+  text-align: center;
+  font-size: 14px;
+}
+
+.complete-profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.complete-profile-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.complete-profile-form label {
+  font-weight: 600;
+  color: #333;
+}
+
+.complete-profile-form input,
+.complete-profile-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.complete-profile-form input:focus,
+.complete-profile-form select:focus {
+  outline: none;
+  border-color: #014119;
+  box-shadow: 0 0 0 3px rgba(1, 65, 25, 0.12);
+}
+
+.complete-profile-form button {
+  margin-top: 8px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #014119;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.complete-profile-form button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.complete-profile-message {
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.complete-profile-message.error {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.complete-profile-message.success {
+  background: #e8f5e9;
+  color: #2e7d32;
+}

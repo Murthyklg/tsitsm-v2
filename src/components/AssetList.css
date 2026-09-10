@@ -1,0 +1,274 @@
+.asset-list {
+  width: 100%;
+  margin: 20px 0;
+}
+
+.asset-list-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.view-toggle-btn {
+  background: #f4f5f7;
+  border: 1px solid #d1d5db;
+  color: #111827;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.view-toggle-btn:hover {
+  background: #e2e8f0;
+}
+
+.view-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.asset-card-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(3, minmax(280px, 1fr));
+}
+
+.asset-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 10px rgba(15, 23, 42, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid rgba(48, 58, 63, 0.25);
+}
+
+.asset-card-main {
+  border: none;
+  background: transparent;
+  padding: 20px;
+  text-align: left;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+}
+
+.asset-card-main:hover {
+  background-color: #f6f8ff;
+}
+
+.asset-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.asset-card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #1f2937;
+}
+
+.asset-user-name {
+  margin: 6px 0 0;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.asset-card-body p {
+  margin: 8px 0;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-active {
+  background-color: #013513;
+  color: #033612;
+}
+
+.status-inactive {
+  background-color: #fff8dc;
+  color: #7d6608;
+}
+
+.status-retired {
+  background-color: #fce8e6;
+  color: #7f1d1d;
+}
+
+.asset-card-actions {
+  padding: 16px 20px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.action-btn,
+.read-only-badge {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.action-btn {
+  border: none;
+  cursor: pointer;
+  color: white;
+  background-color: #033399;
+}
+
+.action-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.delete-btn {
+  background-color: #79000c;
+}
+
+.delete-btn:hover {
+  background-color: #b02a37;
+}
+
+.read-only-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.loading,
+.no-assets {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 16px;
+}
+
+.asset-list-table {
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.asset-table-header,
+.asset-table-row {
+  display: grid;
+  grid-template-columns: minmax(240px, 2fr) 1fr 1fr 1fr 1fr minmax(150px, 1.4fr);
+  gap: 16px;
+  align-items: center;
+  padding: 16px 20px;
+}
+
+.asset-table-header {
+  background: #f8fafc;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.asset-table-row {
+  border-top: 1px solid #e5e7eb;
+  background: white;
+}
+
+.asset-table-row:nth-child(even) {
+  background: #f9fafb;
+}
+
+.asset-table-cell {
+  color: #374151;
+  font-size: 14px;
+}
+
+.asset-title-cell {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.asset-title-cell strong {
+  display: block;
+  color: #111827;
+  font-weight: 700;
+}
+
+.asset-table-meta {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.asset-table-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.asset-table-row button.action-btn,
+.asset-table-row button.delete-btn {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+@media (max-width: 1080px) {
+  .asset-card-grid {
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .asset-card-grid,
+  .asset-list-table {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-table-header,
+  .asset-table-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .asset-table-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
