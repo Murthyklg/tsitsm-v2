@@ -199,12 +199,13 @@ app.post('/api/incidents/:id/comments',async(req,res)=>{const b=req.body;const p
 app.get('/api/activity-logs', requireAdmin, async(_req,res)=>{const p=await getPool();const r=await p.request().query('SELECT TOP 500 * FROM dbo.ActivityLogs WHERE CreatedAt >= DATEADD(day,-30,SYSUTCDATETIME()) ORDER BY CreatedAt DESC');res.json(r.recordset.map((x)=>({...x,id:x.Id})));});
 app.post('/api/activity-logs', async(req,res)=>{const b=req.body;const p=await getPool();await p.request().input('module',sql.NVarChar(40),b.module).input('action',sql.NVarChar(80),b.action).input('description',sql.NVarChar(sql.MAX),b.description).input('performedBy',sql.NVarChar(200),req.user!.name).input('performedByEmail',sql.NVarChar(320),req.user!.email).input('targetName',sql.NVarChar(300),b.targetName).input('targetId',sql.NVarChar(100),b.targetId).query('INSERT dbo.ActivityLogs (Module,Action,Description,PerformedBy,PerformedByEmail,TargetName,TargetId) VALUES (@module,@action,@description,@performedBy,@performedByEmail,@targetName,@targetId)');res.status(201).json({ok:true});});
 
-if (process.env.NODE_ENV === 'production' && process.env.VERCEL !== '1') {
+if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') {
   const distPath = path.resolve(appRoot, '../dist');
   app.use(express.static(distPath));
-  app.use((req, res, next) => {
-    if (req.method === 'GET' && !req.path.startsWith('/api/')) return res.sendFile(path.join(distPath, 'index.html'));
-    next();
+  app.get(/^(?!\/api\/).*$/, (req, res, next) => {
+    if (req.method !== 'GET') return next();
+    if (req.path.startsWith('/api/')) return next();
+    return res.sendFile(path.join(distPath, 'index.html'));
   });
 }
 
