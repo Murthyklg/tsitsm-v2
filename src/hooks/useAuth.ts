@@ -10,16 +10,40 @@ export interface AppUser {
   displayName: string;
   phoneNumber: string | null;
   emailVerified: boolean;
+  department?: string;
 }
 
 const ADMIN_EMAIL = 'itadmin@thaisummit.ind.in';
-const accountToUser = (account: AccountInfo): AppUser => ({
+const currentUserNameFallback = (account: AccountInfo): string => account.name || account.username || 'User';
+
+const accountToUser = (account: AccountInfo, phoneNumber?: string | null, department?: string): AppUser => ({
   uid: account.localAccountId || account.homeAccountId,
   email: account.username,
   displayName: account.name || account.username,
-  phoneNumber: null,
+  phoneNumber: phoneNumber || null,
   emailVerified: true,
+  department: department || '',
 });
+
+const PROFILE_STORAGE_KEY = 'tsitsm-user-profile';
+const saveStoredProfile = (profile: Partial<UserProfile> & { displayName?: string; mobile?: string; department?: string }) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+  } catch {
+    // ignore storage write errors
+  }
+};
+
+const readStoredProfile = (): Partial<UserProfile> | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(PROFILE_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
 
 export const useAuth = () => {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -31,28 +55,69 @@ export const useAuth = () => {
     initializeAuth().then(async () => {
       const account = getAccount();
       if (!account) return;
+
       const nextUser = accountToUser(account);
       setUser(nextUser);
       setIsAdmin(nextUser.email.toLowerCase() === ADMIN_EMAIL);
+
       try {
         const me = await apiRequest<{ isAdmin?: boolean; name?: string }>('/me');
         setIsAdmin(Boolean(me.isAdmin));
-        if (me.name) setUser((current) => current ? { ...current, displayName: me.name! } : current);
+
+        const storedProfile = readStoredProfile();
+        const backendProfile = await apiRequest<UserProfile | null>('/profile');
+        const serverProfile = backendProfile || storedProfile;
+
+        if (serverProfile) {
+          const nextDepartment = serverProfile.department || storedProfile?.department || '';
+          const nextMobile = serverProfile.mobile || storedProfile?.mobile || '';
+          const nextDisplayName = serverProfile.displayName || serverProfile.employeeName || storedProfile?.displayName || currentUserNameFallback(account);
+          setUser((current) => current ? {
+            ...current,
+            displayName: nextDisplayName || current.displayName,
+            phoneNumber: nextMobile || current.phoneNumber,
+            department: nextDepartment || current.department || '',
+          } : current);
+          saveStoredProfile({
+            ...serverProfile,
+            displayName: nextDisplayName,
+            mobile: nextMobile,
+            department: nextDepartment,
+          });
+        }
+
+        if (me.name) {
+          setUser((current) => current ? { ...current, displayName: me.name! } : current);
+        }
+
         const entraProfile = await getMicrosoftProfile();
         const displayName = entraProfile.displayName?.trim();
         const department = (entraProfile.department || entraProfile.onPremisesDepartment)?.trim();
         const mobile = entraProfile.mobilePhone?.trim();
+
         await apiRequest('/profile/sync', {
           method: 'PUT',
           body: JSON.stringify({ displayName, department, mobile }),
         });
-        if (displayName || mobile) {
-          setUser((current) => current ? {
-            ...current,
-            displayName: displayName || current.displayName,
-            phoneNumber: mobile || current.phoneNumber,
-          } : current);
-        }
+
+        const refreshedProfile = await apiRequest<UserProfile | null>('/profile');
+        const updatedDepartment = refreshedProfile?.department || department || serverProfile?.department || '';
+        const updatedMobile = refreshedProfile?.mobile || mobile || serverProfile?.mobile || '';
+        const updatedDisplayName = refreshedProfile?.displayName || refreshedProfile?.employeeName || displayName || me.name || account.name || 'User';
+
+        saveStoredProfile({
+          ...refreshedProfile,
+          displayName: updatedDisplayName,
+          mobile: updatedMobile,
+          department: updatedDepartment,
+        });
+
+        setUser((current) => current ? {
+          ...current,
+          displayName: updatedDisplayName,
+          phoneNumber: updatedMobile || current.phoneNumber,
+          department: updatedDepartment || current.department || '',
+        } : current);
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : 'Unable to load account');
       }

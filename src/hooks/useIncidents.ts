@@ -91,7 +91,27 @@ export const useIncidents = (userId?: string, isAdmin?: boolean) => {
         return;
       }
 
-      const incidentsList = (await apiRequest<Incident[]>('/incidents')).map((incident) => ({ ...incident, createdAt: new Date(incident.createdAt), updatedAt: new Date(incident.updatedAt), comments: incident.comments || [] }))
+      const incidentsList = (await apiRequest<Array<Partial<Incident> & Record<string, unknown>>>('/incidents')).map((incident) => ({
+        id: (incident.id ?? (incident.Id as string | undefined)) as string | undefined,
+        incidentNumber: Number(incident.incidentNumber ?? incident.IncidentNumber ?? 0),
+        reporterId: (incident.reporterId ?? incident.ReporterId ?? '') as string,
+        reporterEmail: (incident.reporterEmail ?? incident.ReporterEmail ?? '') as string,
+        reporterName: (incident.reporterName ?? incident.ReporterName ?? '') as string,
+        reporterEmployeeId: (incident.reporterEmployeeId ?? incident.ReporterEmployeeId ?? '') as string,
+        reporterMobile: (incident.reporterMobile ?? incident.ReporterMobile ?? '') as string,
+        reporterDepartment: (incident.reporterDepartment ?? incident.ReporterDepartment ?? '') as string,
+        title: (incident.title ?? incident.Title ?? '') as string,
+        assetId: (incident.assetId ?? incident.AssetId ?? '') as string | undefined,
+        assetName: (incident.assetName ?? incident.AssetName ?? '') as string | undefined,
+        description: (incident.description ?? incident.Description ?? '') as string,
+        severity: (incident.severity ?? incident.Severity ?? 'medium') as Incident['severity'],
+        category: (incident.category ?? incident.Category ?? 'other') as Incident['category'],
+        status: (incident.status ?? incident.Status ?? 'open') as Incident['status'],
+        comments: Array.isArray(incident.comments) ? incident.comments as Incident['comments'] : [],
+        adminNotes: (incident.adminNotes ?? incident.AdminNotes ?? '') as string | undefined,
+        createdAt: new Date(String(incident.createdAt ?? incident.CreatedAt ?? Date.now())),
+        updatedAt: new Date(String(incident.updatedAt ?? incident.UpdatedAt ?? Date.now())),
+      }))
         .sort((a, b) => {
           const statusOrder: Record<Incident['status'], number> = {
             open: 0,

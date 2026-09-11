@@ -149,10 +149,10 @@
   justify-content: flex-start;
   gap: 12px;
   padding: 14px 18px;
-  border: 1px solid #e35c32;
+  border: 1px solid #014a06;
   border-radius: 6px;
-  background: #f2653c;
-  color: #063b2a;
+  background: #014a06;
+  color: #ffffff;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -160,8 +160,8 @@
 }
 
 .microsoft-login-button:hover:not(:disabled) {
-  background: #f2653c;
-  border-color: #d84f2a;
+  background: #014a06;
+  border-color: #014a06;
   box-shadow: 0 4px 10px rgba(216, 79, 42, 0.24);
 }
 

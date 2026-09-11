@@ -16,7 +16,7 @@ firebase functions:config:set \
   smtp.secure="false" \
   smtp.user="itadmin@thaisummit.ind.in" \
   smtp.pass="YOUR_APP_PASSWORD" \
-  smtp.from="itadmin@thaisummit.ind.in" \
+  smtp.from="onedesk@thaisummit.ind.in" \
   incident_notification_email="itadmin@thaisummit.ind.in"
 ```
 
@@ -41,7 +41,7 @@ firebase functions:config:set \
   smtp.secure="false" \
   smtp.user="itadmin@thaisummit.ind.in" \
   smtp.pass="YOUR_PASSWORD" \
-  smtp.from="itadmin@thaisummit.ind.in" \
+  smtp.from="onedesk@thaisummit.ind.in" \
   incident_notification_email="itadmin@thaisummit.ind.in"
 ```
 
@@ -64,7 +64,7 @@ export SMTP_PORT="587"
 export SMTP_SECURE="false"
 export SMTP_USER="itadmin@thaisummit.ind.in"
 export SMTP_PASS="YOUR_APP_PASSWORD"
-export SMTP_FROM="itadmin@thaisummit.ind.in"
+export SMTP_FROM="onedesk@thaisummit.ind.in"
 export INCIDENT_NOTIFICATION_EMAIL="itadmin@thaisummit.ind.in"
 ```
 

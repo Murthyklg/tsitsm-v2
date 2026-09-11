@@ -31,6 +31,14 @@ const incidentCategories = [
   { value: 'other', label: 'Other' },
 ] as const;
 
+const pickFirstNonEmpty = (...values: Array<string | undefined | null>) => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (value !== undefined && value !== null && value !== '') return String(value).trim();
+  }
+  return '';
+};
+
 const incidentIssuesByCategory: Record<Incident['category'], string[]> = {
   laptop: ['Not powering on','MS Office issue','Outlook issue','One Drive error', 'Blue Screen Error','Battery not charging', 'Keyboard not working', 'Screen issue',  'Software crash', 'Slow performance', 'Overheating','Hardware issue', 'Other'],
   desktop: ['Not powering on','MS Office issue','Outlook issue','One Drive error','Blue Screen Error', 'Screen issue', 'Mouse or keyboard issue', 'Software crash', 'Slow performance', 'Hardware issue','Other'],
@@ -65,17 +73,18 @@ export const IncidentManagement: React.FC = () => {
       ? (() => {
           try {
             const raw = window.localStorage.getItem('pendingProfile');
-            return raw ? JSON.parse(raw) : null;
+            const fallback = window.localStorage.getItem('tsitsm-user-profile');
+            return raw ? JSON.parse(raw) : fallback ? JSON.parse(fallback) : null;
           } catch {
             return null;
           }
         })()
       : null;
 
-    const profileName = profile?.employeeName || profile?.displayName || pendingProfile?.displayName || user.displayName || '';
-    const profileDepartment = profile?.department || pendingProfile?.department || '';
-    const profileEmployeeId = profile?.employeeId || pendingProfile?.employeeId || '';
-    const profileMobile = (profile?.mobile ?? pendingProfile?.mobile ?? user.phoneNumber ?? 'N/A').trim();
+    const profileName = pickFirstNonEmpty(profile?.employeeName, profile?.displayName, pendingProfile?.displayName, user.displayName);
+    const profileDepartment = pickFirstNonEmpty(profile?.department, pendingProfile?.department, user.department);
+    const profileEmployeeId = pickFirstNonEmpty(profile?.employeeId, pendingProfile?.employeeId);
+    const profileMobile = pickFirstNonEmpty(profile?.mobile, pendingProfile?.mobile, user.phoneNumber, 'N/A');
 
     setForm({
       ...emptyForm,
@@ -97,17 +106,18 @@ export const IncidentManagement: React.FC = () => {
       ? (() => {
           try {
             const raw = window.localStorage.getItem('pendingProfile');
-            return raw ? JSON.parse(raw) : null;
+            const fallback = window.localStorage.getItem('tsitsm-user-profile');
+            return raw ? JSON.parse(raw) : fallback ? JSON.parse(fallback) : null;
           } catch {
             return null;
           }
         })()
       : null;
 
-    const profileName = profile?.employeeName || profile?.displayName || pendingProfile?.displayName || user.displayName || '';
-    const profileDepartment = profile?.department || pendingProfile?.department || '';
-    const profileEmployeeId = profile?.employeeId || pendingProfile?.employeeId || '';
-    const profileMobile = (profile?.mobile ?? pendingProfile?.mobile ?? user.phoneNumber ?? 'N/A').trim();
+    const profileName = pickFirstNonEmpty(profile?.employeeName, profile?.displayName, pendingProfile?.displayName, user.displayName);
+    const profileDepartment = pickFirstNonEmpty(profile?.department, pendingProfile?.department, user.department);
+    const profileEmployeeId = pickFirstNonEmpty(profile?.employeeId, pendingProfile?.employeeId);
+    const profileMobile = pickFirstNonEmpty(profile?.mobile, pendingProfile?.mobile, user.phoneNumber, 'N/A');
 
     setForm((current) => ({
       ...current,
@@ -254,9 +264,8 @@ export const IncidentManagement: React.FC = () => {
         reporterEmail: form.reporterEmail.trim() || user.email || '',
         reporterName: form.reporterName?.trim() || profile?.employeeName || profile?.displayName || user.displayName || 'User',
         reporterEmployeeId: profile?.employeeId || form.reporterEmployeeId.trim(),
-        reporterMobile:
-          (profile?.mobile?.trim() || form.reporterMobile.trim() || user.phoneNumber?.trim() || '').trim(),
-        reporterDepartment: profile?.department || form.reporterDepartment.trim(),
+        reporterMobile: pickFirstNonEmpty(profile?.mobile, form.reporterMobile, user.phoneNumber),
+        reporterDepartment: pickFirstNonEmpty(profile?.department, form.reporterDepartment, user.department),
         title: form.title.trim(),
         assetId: form.assetId.trim(),
         assetName: form.assetName.trim(),

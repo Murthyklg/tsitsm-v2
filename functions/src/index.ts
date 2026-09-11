@@ -15,7 +15,7 @@ const getConfigValue = (envKey: string, configKey?: string): string | undefined 
 };
 
 const getConfiguredSender = (): string => {
-  return getConfigValue('SMTP_FROM', 'smtp.from') || getConfigValue('OUTLOOK_EMAIL', 'outlook.email') || getConfigValue('SMTP_USER', 'smtp.user') || 'no-reply@localhost';
+  return getConfigValue('SMTP_FROM', 'smtp.from') || 'onedesk@thaisummit.ind.in';
 };
 
 const createEmailTransporter = () => {
@@ -68,7 +68,7 @@ const generateAssetEmailTemplate = (assetData: any): string => {
       <body>
         <div class="container">
           <div class="header">
-            <h2>New Asset Added to System</h2>
+            <h2>TS Onedesk Notification</h2>
           </div>
           <div class="content">
             <p>A new asset has been added to the Asset Management System:</p>
@@ -150,7 +150,7 @@ const generateIncidentEmailTemplate = (incidentData: any): string => {
       <body>
         <div class="container">
           <div class="header">
-            <h2>New Incident Report Submitted</h2>
+            <h2>TS Onedesk Notification</h2>
           </div>
           <div class="content">
             <p>A new incident report has been submitted in the Asset Management System.</p>
@@ -266,7 +266,7 @@ export const sendAdminNotification = functions.firestore
     try {
       await sendEmail(
         adminEmail,
-        `[ADMIN] New Asset Created by ${assetData.employeeName || 'Unknown'}`,
+        'TS Onedesk Notification',
         generateAssetEmailTemplate(assetData),
       );
       console.log(`Admin notification sent to ${adminEmail}`);
@@ -295,7 +295,7 @@ export const sendIncidentNotification = functions.firestore
     try {
       await sendEmail(
         adminEmail,
-        `[INCIDENT] ${incidentData.title || 'New incident report submitted'}`,
+        'TS Onedesk Notification',
         generateIncidentEmailTemplate(incidentData),
       );
       console.log(`Incident notification sent to ${adminEmail}`);

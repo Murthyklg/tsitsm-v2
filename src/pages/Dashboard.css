@@ -1,5 +1,8 @@
 .dashboard {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   background-color: #e4e2e2;
 }
 
@@ -140,15 +143,18 @@
 }
 
 .dashboard-content {
- 
+  width: 100%;
   max-width: 100%;
   min-height: calc(80vh - 120px);
-  
+  overflow-x: hidden;
 }
 
 .dashboard-layout {
   display: block;
+  width: 100%;
+  max-width: 100%;
   min-height: calc(80vh - 40px);
+  overflow-x: hidden;
 }
 
 .dashboard-sidebar {
@@ -276,9 +282,10 @@
 
 
 .assets-section {
-  background-color: e4e2e2;
+  background-color: #e4e2e2;
   padding: 30px;
-  
+  width: 100%;
+  max-width: 100%;
   margin-bottom: 30px;
 }
 
@@ -722,6 +729,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .dashboard-header-brand {
@@ -745,7 +754,7 @@
     top: 0;
     left: 0;
     bottom: 0;
-    width: 280px;
+    width: min(280px, calc(100% - 32px));
     max-width: calc(100% - 32px);
     transform: translateX(-100%);
     opacity: 0;
@@ -776,35 +785,23 @@
 
   .mobile-topbar-left {
     display: flex;
-  }
-
-  .dashboard-layout.sidebar-open .dashboard-sidebar,
-  .incident-portal-layout.sidebar-open .incident-sidebar {
-    transform: translateX(0);
-    opacity: 1;
-    visibility: visible;
-  }
-
-  .sidebar-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    z-index: 100;
-  }
-
-  .mobile-topbar-left {
-    display: flex;
+    min-width: 0;
+    flex: 1;
   }
 
   .dashboard-main {
     margin-left: 0;
     padding-left: 0;
     padding-top: 0;
+    width: 100%;
+    max-width: 100%;
   }
 
   .incident-portal-layout {
     margin-left: 0;
     padding: 16px 16px 24px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .sidebar-header.sidebar-brand-header {
@@ -842,6 +839,8 @@
   .request-form-section,
   .incident-main {
     padding: 16px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .requests-grid {
@@ -873,6 +872,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
+    width: 100%;
   }
 
   .section-actions > * {

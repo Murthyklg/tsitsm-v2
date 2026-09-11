@@ -2,17 +2,29 @@ import { PublicClientApplication, type AccountInfo } from '@azure/msal-browser';
 
 const tenantId = import.meta.env.VITE_MICROSOFT_TENANT_ID || 'f1dad057-a1be-4bcd-b374-50cba74582fd';
 const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID;
-const apiScope = import.meta.env.VITE_API_SCOPE || `api://${clientId}/access_as_user`;
+const apiScope = clientId ? (import.meta.env.VITE_API_SCOPE || `api://${clientId}/access_as_user`) : '';
 const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
+const isLocalhost = typeof window !== 'undefined' && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+const isSecureBrowserContext = typeof window !== 'undefined' && window.isSecureContext;
 
-export const msal = clientId ? new PublicClientApplication({
-  auth: { clientId, authority: `https://login.microsoftonline.com/${tenantId}`, redirectUri: window.location.origin },
-  cache: { cacheLocation: 'sessionStorage' },
-}) : null;
+const getMsalUnavailableMessage = () => {
+  if (!clientId) return 'VITE_MICROSOFT_CLIENT_ID is not configured';
+  if (typeof window !== 'undefined' && !isSecureBrowserContext && !isLocalhost) {
+    return 'Microsoft sign-in requires HTTPS or localhost. Please open the app with https://<your-ip> or localhost.';
+  }
+  return 'Microsoft authentication is not available in this browser context.';
+};
+
+export const msal = clientId && (isSecureBrowserContext || isLocalhost)
+  ? new PublicClientApplication({
+      auth: { clientId, authority: `https://login.microsoftonline.com/${tenantId}`, redirectUri: window.location.origin },
+      cache: { cacheLocation: 'sessionStorage' },
+    })
+  : null;
 
 let initialized: Promise<void> | undefined;
 export const initializeAuth = async () => {
-  if (!msal) throw new Error('VITE_MICROSOFT_CLIENT_ID is not configured');
+  if (!msal) throw new Error(getMsalUnavailableMessage());
   initialized ??= msal.initialize();
   await initialized;
   const response = await msal.handleRedirectPromise();
