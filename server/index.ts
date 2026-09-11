@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
@@ -201,12 +202,24 @@ app.post('/api/activity-logs', async(req,res)=>{const b=req.body;const p=await g
 
 if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') {
   const distPath = path.resolve(appRoot, '../dist');
-  app.use(express.static(distPath));
-  app.get(/^(?!\/api\/).*$/, (req, res, next) => {
-    if (req.method !== 'GET') return next();
-    if (req.path.startsWith('/api/')) return next();
-    return res.sendFile(path.join(distPath, 'index.html'));
-  });
+  const distIndexPath = path.join(distPath, 'index.html');
+  const hasFrontendBuild = fs.existsSync(distIndexPath);
+
+  if (hasFrontendBuild) {
+    app.use(express.static(distPath));
+    app.get(/^(?!\/api\/).*$/, (req, res, next) => {
+      if (req.method !== 'GET') return next();
+      if (req.path.startsWith('/api/')) return next();
+      return res.sendFile(distIndexPath);
+    });
+  } else {
+    app.get(/^(?!\/api\/).*$/, (_req, res) => {
+      res.status(200).json({
+        ok: false,
+        message: 'Frontend bundle is not built in this deployment. Deploy the Vite app separately or build the dist folder before using this API project as the root URL.',
+      });
+    });
+  }
 }
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => { console.error(error); res.status(500).json({ error: error instanceof Error ? error.message : 'Server error' }); });
